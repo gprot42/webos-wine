@@ -1,0 +1,15 @@
+# foobar2000, 32-bit build. winetricks' foobar2000 verb needs a manual download.
+w_metadata fb2k apps \
+    title="foobar2000 2.25.10 (32-bit)" \
+    publisher="Peter Pawlowski" \
+    year="2025" \
+    media="download" \
+    file1="foobar2000_v2.25.10.exe" \
+    installed_exe1="${W_PROGRAMS_X86_WIN}/foobar2000/foobar2000.exe"
+
+load_fb2k()
+{
+    w_download https://www.foobar2000.org/files/foobar2000_v2.25.10.exe 2a9cd51e0b5309c95db578257904ee4a6c59a61167074e9f56e43658c74984d9
+    w_try_cd "${W_CACHE}/${W_PACKAGE}"
+    w_try "${WINE}" foobar2000_v2.25.10.exe ${W_OPT_UNATTENDED:+/S}
+}

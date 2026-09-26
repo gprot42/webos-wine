@@ -1,0 +1,16 @@
+# Winamp 5.92, 32-bit. Winamp publishes only a "latest" installer URL: when it
+# is replaced, the checksum fails and this recipe needs the new one.
+w_metadata winamp5 apps \
+    title="Winamp 5.92" \
+    publisher="Winamp SA" \
+    year="2025" \
+    media="download" \
+    file1="winamp_latest_full.exe" \
+    installed_exe1="${W_PROGRAMS_X86_WIN}/Winamp/winamp.exe"
+
+load_winamp5()
+{
+    w_download https://download.winamp.com/winamp/winamp_latest_full.exe d064eefc27c71fc8915e5cce8d20f635030f4654d917bc1c7ac3f7ad869181c0
+    w_try_cd "${W_CACHE}/${W_PACKAGE}"
+    w_try "${WINE}" winamp_latest_full.exe ${W_OPT_UNATTENDED:+/S}
+}

@@ -1,0 +1,16 @@
+# 7-Zip, 32-bit build. winetricks' own 7zip verb installs the x64 build on a
+# 64-bit prefix, and this Wine runs 32-bit x86 programs only (through FEX).
+w_metadata 7zip32 apps \
+    title="7-Zip 24.09 (32-bit)" \
+    publisher="Igor Pavlov" \
+    year="2024" \
+    media="download" \
+    file1="7z2409.exe" \
+    installed_exe1="${W_PROGRAMS_X86_WIN}/7-Zip/7zFM.exe"
+
+load_7zip32()
+{
+    w_download https://www.7-zip.org/a/7z2409.exe e35e4374100b52e697e002859aefdd5533bcbf4118e5d2210fae6de318947c41
+    w_try_cd "${W_CACHE}/${W_PACKAGE}"
+    w_try "${WINE}" 7z2409.exe ${W_OPT_UNATTENDED:+/S}
+}

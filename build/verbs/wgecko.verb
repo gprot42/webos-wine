@@ -1,0 +1,23 @@
+# Wine Gecko 2.47.4, x86: the engine of Wine's Internet Explorer and of the IE
+# control (mshtml) that many programs and installers embed. There is no ARM64
+# build, so 32-bit programs (through FEX) get it; the catalog starts 32-bit
+# iexplore.exe. Version and checksum are the ones Wine 11 expects
+# (dlls/appwiz.cpl/addons.c).
+w_metadata wgecko dlls \
+    title="Wine Gecko 2.47.4 (x86)" \
+    publisher="WineHQ" \
+    year="2023" \
+    media="download" \
+    file1="wine-gecko-2.47.4-x86.msi"
+
+load_wgecko()
+{
+    w_download https://dl.winehq.org/wine/wine-gecko/2.47.4/wine-gecko-2.47.4-x86.msi 26cecc47706b091908f7f814bddb074c61beb8063318e9efc5a7f789857793d6
+    w_try_cd "${W_CACHE}/${W_PACKAGE}"
+    # The 32-bit msiexec, so it lands in syswow64 where 32-bit mshtml looks.
+    w_try "${WINE}" 'C:\windows\syswow64\msiexec.exe' /i wine-gecko-2.47.4-x86.msi ${W_OPT_UNATTENDED:+/qn}
+    # mshtml must be registered as the HTML handler ("Could not find object
+    # for MIME text/html" otherwise); older templates skipped it.
+    w_try "${WINE}" 'C:\windows\syswow64\regsvr32.exe' /s mshtml.dll
+    w_try "${WINE}" 'C:\windows\system32\regsvr32.exe' /s mshtml.dll
+}

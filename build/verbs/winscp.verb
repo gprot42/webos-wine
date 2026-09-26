@@ -1,0 +1,15 @@
+# WinSCP, 32-bit, from WinSCP's SourceForge mirror (winscp.net's links expire).
+w_metadata winscp apps \
+    title="WinSCP 6.5.7" \
+    publisher="Martin Prikryl" \
+    year="2025" \
+    media="download" \
+    file1="WinSCP-6.5.7-Setup.exe" \
+    installed_exe1="${W_PROGRAMS_X86_WIN}/WinSCP/WinSCP.exe"
+
+load_winscp()
+{
+    w_download https://downloads.sourceforge.net/project/winscp/WinSCP/6.5.7/WinSCP-6.5.7-Setup.exe 65103dad94a907bf8b7b9b8db8174dfb60010237d9125db066f34d89817bcd99
+    w_try_cd "${W_CACHE}/${W_PACKAGE}"
+    w_try "${WINE}" WinSCP-6.5.7-Setup.exe ${W_OPT_UNATTENDED:+/VERYSILENT /ALLUSERS /NORESTART}
+}

@@ -1,0 +1,115 @@
+#!/bin/bash
+# Installs one catalog entry (tools/etc/catalog.tsv) into the app's prefix
+# with winetricks, and starts the program it installs. Started by wine-tv when
+# a "Get Apps" shortcut in Wine's Start menu drops a request file; also usable
+# by hand over SSH as the app's user.
+#
+# An app that is already installed is just started. Otherwise a console window
+# on the Wine desktop shows the last lines of winetricks' output; afterwards
+# the app starts, or, for runtimes and on failure, the whole log
+# (C:\winetricks.log) opens in Notepad.
+set -u
+verb=${1:?usage: wine-tv-install VERB}
+case $verb in *[!a-z0-9_-]*) echo "bad verb: $verb" >&2; exit 2 ;; esac
+
+APP=$(cd "$(dirname "$0")/../.." && pwd)
+export HOME=$APP/home
+export WINEPREFIX=$HOME/wine64
+export WINE=$APP/wine/bin/wine WINESERVER=$APP/wine/bin/wineserver
+export PATH=$APP/tools/bin:$APP/wine/bin:/usr/bin:/bin:/usr/sbin:/sbin
+export CURL_CA_BUNDLE=$APP/tools/etc/ca-certificates.crt SSL_CERT_FILE=$APP/tools/etc/ca-certificates.crt
+export W_CACHE=$HOME/.cache/winetricks
+export WINETRICKS_LATEST_VERSION_CHECK=disabled
+# The bundled curl: BusyBox's wget lacks options winetricks passes.
+export WINETRICKS_DOWNLOADER=curl
+export WINEDEBUG=-all
+export DISPLAY=${DISPLAY:-:7}
+[ -S /var/run/pulse/native ] && export PULSE_SERVER=${PULSE_SERVER:-unix:/var/run/pulse/native}
+C=$WINEPREFIX/drive_c
+LOG=$C/winetricks.log
+PROGRESS=$C/windows/temp/wine-tv-progress.txt
+DONE=$C/windows/temp/wine-tv-done
+mkdir -p "$C/windows/temp"
+
+# Windows programs started from here (installers, the app, Notepad, the
+# progress window) open inside the TV's Wine desktop, not as windows of
+# their own.
+"$WINE" reg add 'HKCU\Software\Wine\Explorer' /v Desktop /d shell /f >/dev/null 2>&1
+
+# The program this entry installs, as a Windows path and as a Unix path.
+run=$(awk -F'\t' -v v="$verb" '!/^#/ && $3 == v { print $4; exit }' "$APP/tools/etc/catalog.tsv")
+check=$(awk -F'\t' -v v="$verb" '!/^#/ && $3 == v { print $5; exit }' "$APP/tools/etc/catalog.tsv")
+to_unix() { printf '%s/%s' "$C" "$(printf '%s' "${1#C:\\}" | tr '\\' '/')"; }
+run_unix=
+[ -n "$run" ] && run_unix=$(to_unix "$run")
+# What shows the entry is installed: its own file, or the program itself.
+check_unix=$run_unix
+[ -n "$check" ] && check_unix=$(to_unix "$check")
+start_program() {
+    ( cd "$(dirname "$run_unix")" && exec "$WINE" "$run" >/dev/null 2>&1 ) &
+}
+if [ -n "$run_unix" ] && [ -f "$check_unix" ]; then
+    start_program
+    exit 0
+fi
+
+# winetricks' own verb, or our recipe for it in tools/verbs.
+target=$verb
+[ -f "$APP/tools/verbs/$verb.verb" ] && target=$APP/tools/verbs/$verb.verb
+
+# The progress window: a batch file that redraws the progress text until the
+# done marker appears.
+rm -f "$DONE"
+printf 'Starting %s...\r\n' "$verb" > "$PROGRESS"
+cat > "$C/windows/wine-tv-progress.bat" <<'BAT'
+@echo off
+title Installing %1
+:loop
+cls
+echo Installing %1. This window closes when it is done.
+echo ------------------------------------------------------------
+type C:\windows\temp\wine-tv-progress.txt
+if exist C:\windows\temp\wine-tv-done goto end
+timeout /t 3 /nobreak >nul
+goto loop
+:end
+BAT
+sed -i 's/$/\r/' "$C/windows/wine-tv-progress.bat"
+"$WINE" start "Installing $verb" cmd /c 'C:\windows\wine-tv-progress.bat' "$verb" >/dev/null 2>&1 &
+
+# Keep the last lines of useful output in the progress file: curl's progress
+# bars (carriage returns) are split up and dropped.
+show_progress() {
+    local -a last=()
+    local line
+    while IFS= read -r line; do
+        case $line in
+            *libSegFault*|*"% Total"*|*"Dload  Upload"*|*--:--:--*|"") continue ;;
+        esac
+        last+=("${line:0:110}")
+        (( ${#last[@]} > 16 )) && last=("${last[@]:1}")
+        printf '%s\r\n' "${last[@]}" > "$PROGRESS"
+    done
+}
+
+{
+    echo "=== $(date '+%F %T') installing $verb"
+    df -h "$APP" | tail -1
+} >> "$LOG"
+winetricks --unattended "$target" 2>&1 | tee -a "$LOG" | tr '\r' '\n' | show_progress
+status=${PIPESTATUS[0]}
+# Downloads are kept only while installing: the TV has little space.
+rm -rf "$W_CACHE"
+ok=0
+[ "$status" -eq 0 ] && { [ -z "$check_unix" ] || [ -f "$check_unix" ]; } && ok=1
+if [ $ok = 1 ]; then result=done; else result="FAILED (exit $status)"; fi
+printf '=== %s %s: %s\n\n' "$(date '+%F %T')" "$verb" "$result" >> "$LOG"
+printf '\r\n%s: %s\r\n' "$verb" "$result" >> "$PROGRESS"
+
+touch "$DONE"
+sleep 4
+if [ $ok = 1 ] && [ -n "$run" ]; then
+    start_program
+else
+    "$WINE" notepad 'C:\winetricks.log' >/dev/null 2>&1 &
+fi

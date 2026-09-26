@@ -1,0 +1,21 @@
+# The Start menu's "Get Apps" folder, created in the prefix template by
+# make-prefix.sh, and read by wine-tv-install. Tab-separated columns:
+#   folder, shortcut name, winetricks verb (or build/verbs/<verb>.verb),
+#   program to start once installed (apps only; 32-bit x86 builds, as this
+#   Wine runs 32-bit x86 Windows programs through FEX),
+#   optionally a file that shows the entry is installed (default: the program).
+Runtimes	Core fonts (Arial, Times, ...)	corefonts	
+Runtimes	Visual C++ 2015-2022	vcrun2022	
+Runtimes	DirectX 9 (d3dx9)	d3dx9	
+Runtimes	XACT audio	xact	
+Runtimes	.NET Framework 4.8 (large, slow)	dotnet48	
+Apps	7-Zip	7zip32	C:\Program Files (x86)\7-Zip\7zFM.exe
+Apps	Notepad++	npp	C:\Program Files (x86)\Notepad++\notepad++.exe
+Apps	VLC media player	vlc	C:\Program Files (x86)\VideoLAN\VLC\vlc.exe
+Apps	IrfanView	irfanview	C:\Program Files (x86)\IrfanView\i_view32.exe
+Apps	Media Player Classic	mpc	C:\Program Files (x86)\MPC-HC\mpc-hc.exe
+Apps	foobar2000	fb2k	C:\Program Files (x86)\foobar2000\foobar2000.exe
+Apps	Winamp	winamp5	C:\Program Files (x86)\Winamp\winamp.exe
+Apps	PuTTY	putty	C:\Program Files (x86)\PuTTY\putty.exe
+Apps	WinSCP	winscp	C:\Program Files (x86)\WinSCP\WinSCP.exe
+Apps	Internet Explorer (Wine Gecko)	wgecko	C:\Program Files (x86)\Internet Explorer\iexplore.exe	C:\windows\syswow64\gecko\2.47.4\wine_gecko\xul.dll

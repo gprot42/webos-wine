@@ -1,0 +1,16 @@
+{
+  "id": "com.github.gprot42.wine",
+  "version": "0.1.34",
+  "vendor": "webOS Homebrew",
+  "type": "native",
+  "main": "wine-tv",
+  "title": "Wine",
+  "appDescription": "Wine 11 for webOS TV: 32-bit Windows programs through box86.",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "iconColor": "#6b1d2a",
+  "useAllMouseButtons": true,
+  "useAllKeyboardKeys": true,
+  "disableBackHistoryAPI": true,
+  "requiredMemory": 600
+}

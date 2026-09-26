@@ -1,0 +1,4 @@
+# Packages built by scripts/install2tvfrommacos.sh
+dist/
+.DS_Store
+__pycache__/

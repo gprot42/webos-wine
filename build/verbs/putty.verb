@@ -1,0 +1,15 @@
+# PuTTY, 32-bit MSI.
+w_metadata putty apps \
+    title="PuTTY 0.85 (32-bit)" \
+    publisher="Simon Tatham" \
+    year="2025" \
+    media="download" \
+    file1="putty-0.85-installer.msi" \
+    installed_exe1="${W_PROGRAMS_X86_WIN}/PuTTY/putty.exe"
+
+load_putty()
+{
+    w_download https://the.earth.li/~sgtatham/putty/0.85/w32/putty-0.85-installer.msi cbc48af94f6462fa3c1859f4185a1ffda360c3c760def9ad5b1e0ec1430b2e09
+    w_try_cd "${W_CACHE}/${W_PACKAGE}"
+    w_try "${WINE}" msiexec /i putty-0.85-installer.msi ${W_OPT_UNATTENDED:+/qn}
+}
