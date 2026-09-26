@@ -4,6 +4,10 @@ Wine runs natively on the TV and runs 32-bit Windows programs, started from an a
 
 App id `com.github.gprot42.wine`. Title "Wine".
 
+## Download
+
+Ready-made packages are on the [Releases](https://github.com/gprot42/webos-wine/releases) page: `com.github.gprot42.wine_<version>_arm.ipk`. Install it like any webOS homebrew app, with Homebrew Channel, webOS Dev Manager or `ares-install`. It needs about 1 GB free on the TV's developer storage. It is built and tested on an LG OLED55C56LB (webOS TV 25). Other webOS TVs with a 64-bit (aarch64) kernel may work but are untested.
+
 ## How it works
 
 ```
