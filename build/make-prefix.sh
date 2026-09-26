@@ -27,6 +27,8 @@ su prisoner -c "export WINEPREFIX=$T/wine64 HOME=/tmp/prisoner-home WINEDEBUG=-a
 # "Get Apps" folder; a "Get Apps" icon on the desktop opens that folder.
 # Also make "shell" the default desktop, so winetricks' installers and Notepad,
 # started from outside explorer, open inside the TV's Wine desktop.
+# Text for a TV: the desktop is the panel's native 1920x1080 at 144 DPI (150%),
+# with grayscale font smoothing (an OLED's subpixels suit ClearType poorly).
 python3 - "$W/build/catalog.tsv" > $T/shortcuts.vbs <<'PY'
 import sys
 rows = [l.rstrip("\n").split("\t") for l in open(sys.argv[1]) if l.strip() and not l.startswith("#")]
@@ -55,7 +57,11 @@ PY
 su prisoner -c "export WINEPREFIX=$T/wine64 HOME=/tmp/prisoner-home WINEDEBUG=-all; cd /tmp && \
   $APPDIR/wine/bin/wine wscript //B 'Z:$T/shortcuts.vbs' && \
   $APPDIR/wine/bin/wine reg add 'HKCU\\Software\\Wine\\Explorer' /v Desktop /d shell /f && \
-  $APPDIR/wine/bin/wine reg add 'HKCU\\Software\\Wine\\Explorer\\Desktops' /v shell /d 1280x720 /f && \
+  $APPDIR/wine/bin/wine reg add 'HKCU\\Software\\Wine\\Explorer\\Desktops' /v shell /d 1920x1080 /f && \
+  $APPDIR/wine/bin/wine reg add 'HKCU\\Control Panel\\Desktop' /v LogPixels /t REG_DWORD /d 144 /f && \
+  $APPDIR/wine/bin/wine reg add 'HKCU\\Control Panel\\Desktop' /v FontSmoothing /t REG_SZ /d 2 /f && \
+  $APPDIR/wine/bin/wine reg add 'HKCU\\Control Panel\\Desktop' /v FontSmoothingType /t REG_DWORD /d 1 /f && \
+  $APPDIR/wine/bin/wine reg add 'HKCU\\Control Panel\\Desktop' /v FontSmoothingGamma /t REG_DWORD /d 1400 /f && \
   $APPDIR/wine/bin/wine reg add 'HKCU\\Software\\Microsoft\\Internet Explorer\\Main' /v 'Start Page' /d about:blank /f && \
   $APPDIR/wine/bin/wineserver -w" 2>&1 | grep -vE "^$|nodrv|explorer process" | tail -3 || true
 echo "shortcuts: $(find "$T/wine64/drive_c/ProgramData/Microsoft/Windows/Start Menu/Programs/Get Apps" -name '*.lnk' | wc -l) in Get Apps; desktop: $(ls "$T/wine64/drive_c/users/Public/Desktop")"

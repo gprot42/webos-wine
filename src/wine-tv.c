@@ -21,7 +21,7 @@
  * Launch parameters (webOS "params" JSON, or argv when run by hand):
  *   {"exe":"C:\\path\\to\\program.exe"}  run a program inside the desktop
  * Settings, one KEY=VALUE per line, in home/wine-tv.conf:
- *   size=1280x720   the X screen and Wine desktop size
+ *   size=1920x1080  the X screen and Wine desktop size
  *   program=...     what the desktop runs when no exe is given
  */
 
@@ -96,6 +96,10 @@ static struct {
     int cursor_ibeam;            /* X shows the text cursor (I-beam) */
     Damage damage;
     int dirty;                   /* X screen changed since the last commit */
+    /* What changed since the last commit (x1,y1)-(x2,y2), sent to the
+     * compositor as the damaged area rather than the whole screen. */
+    int dmg_x1, dmg_y1, dmg_x2, dmg_y2;
+    XserverRegion damage_region;
     int kb_spare;                /* keycode borrowed for characters with no key */
 
     struct wl_display *display;
@@ -219,16 +223,19 @@ static void read_conf(void)
     char path[PATH_MAX], line[1200];
     FILE *f;
 
-    g.width = 1280;
-    g.height = 720;
+    /* The panel's own resolution: drawn 1:1, text stays sharp (Wine runs
+     * at 144 DPI so it is not small; build/make-prefix.sh). */
+    g.width = 1920;
+    g.height = 1080;
     path_join(path, sizeof path, g.home, "wine-tv.conf");
     f = fopen(path, "r");
     if (!f) {
         f = fopen(path, "w");
         if (f) {
             fputs("# wine-tv settings, one KEY=VALUE per line.\n"
-                  "# size: the Wine desktop, scaled to the panel by the TV.\n"
-                  "size=1280x720\n"
+                  "# size: the Wine desktop. 1920x1080 is the panel's own; smaller\n"
+                  "# sizes are scaled up by the TV, which blurs text.\n"
+                  "size=1920x1080\n"
                   "# program: what the desktop opens when the app is launched\n"
                   "# without {\"exe\":...}. Empty for just the desktop.\n"
                   "program=winefile\n", f);
@@ -679,6 +686,7 @@ static void connect_x(void)
     /* Cursor changes show when the pointer is over a text field. */
     XFixesSelectCursorInput(g.x, DefaultRootWindow(g.x), XFixesDisplayCursorNotifyMask);
     g.damage = XDamageCreate(g.x, DefaultRootWindow(g.x), XDamageReportNonEmpty);
+    g.damage_region = XFixesCreateRegion(g.x, NULL, 0);
     /* The TV draws the Magic Remote pointer; X's own would be a second one,
      * drawn into the picture a little behind it. */
     XFixesHideCursor(g.x, DefaultRootWindow(g.x));
@@ -1603,7 +1611,7 @@ static long ms_since(const struct timespec *t)
     return (now.tv_sec - t->tv_sec) * 1000 + (now.tv_nsec - t->tv_nsec) / 1000000;
 }
 
-static void present(void)
+static void present_frame(int full)
 {
     /* LSM does not always answer a frame callback (for example while the
      * window is not in front). Waiting on one forever froze the picture
@@ -1619,7 +1627,13 @@ static void present(void)
     g.settle = g.dirty;
     g.dirty = 0;
     wl_surface_attach(g.surface, g.buffer, 0, 0);
-    wl_surface_damage(g.surface, 0, 0, g.width, g.height);
+    /* Only the changed area: at 1920x1080 a full frame is 8 MB for the
+     * compositor to take in. The settle frame sends everything. */
+    if (full || g.dmg_x2 <= g.dmg_x1 || g.dmg_y2 <= g.dmg_y1)
+        wl_surface_damage(g.surface, 0, 0, g.width, g.height);
+    else
+        wl_surface_damage(g.surface, g.dmg_x1, g.dmg_y1, g.dmg_x2 - g.dmg_x1, g.dmg_y2 - g.dmg_y1);
+    g.dmg_x1 = g.dmg_y1 = g.dmg_x2 = g.dmg_y2 = 0;
     g.frame = wl_surface_frame(g.surface);
     wl_callback_add_listener(g.frame, &frame_listener, NULL);
     wl_surface_commit(g.surface);
@@ -1658,7 +1672,29 @@ static void drain_x(void)
 
         XNextEvent(g.x, &ev);
         if (ev.type == g.damage_event + XDamageNotify) {
-            XDamageSubtract(g.x, g.damage, None, None);
+            XRectangle bounds;
+            int n = 0;
+            XRectangle *rects;
+
+            XDamageSubtract(g.x, g.damage, None, g.damage_region);
+            rects = XFixesFetchRegionAndBounds(g.x, g.damage_region, &n, &bounds);
+            if (rects)
+                XFree(rects);
+            if (bounds.width && bounds.height) {
+                int x2 = bounds.x + bounds.width, y2 = bounds.y + bounds.height;
+
+                if (g.dmg_x2 <= g.dmg_x1) {
+                    g.dmg_x1 = bounds.x;
+                    g.dmg_y1 = bounds.y;
+                    g.dmg_x2 = x2;
+                    g.dmg_y2 = y2;
+                } else {
+                    if (bounds.x < g.dmg_x1) g.dmg_x1 = bounds.x;
+                    if (bounds.y < g.dmg_y1) g.dmg_y1 = bounds.y;
+                    if (x2 > g.dmg_x2) g.dmg_x2 = x2;
+                    if (y2 > g.dmg_y2) g.dmg_y2 = y2;
+                }
+            }
             g.dirty = 1;
         } else if (ev.type == g.fixes_event + XFixesCursorNotify) {
             update_cursor_kind();
@@ -1759,7 +1795,7 @@ int main(int argc, char **argv)
 
         drain_x();
         if (g.dirty && (!g.frame || ms_since(&g.frame_at) > 50))
-            present();
+            present_frame(0);
         /* The compositor reads the shared buffer when it draws, not when we
          * commit. If the last change landed after that read, the TV kept an
          * old picture (a black area where a closed window had been). So once
@@ -1767,7 +1803,7 @@ int main(int argc, char **argv)
         else if (g.settle && !g.dirty && ms_since(&g.frame_at) > 300) {
             g.settle = 0;
             g.dirty = 0;
-            present();
+            present_frame(1);
             g.settle = 0;
         }
         if (wl_display_get_error(g.display)) {

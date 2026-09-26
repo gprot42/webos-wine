@@ -1,6 +1,6 @@
 {
   "id": "com.github.gprot42.wine",
-  "version": "0.1.35",
+  "version": "0.1.37",
   "vendor": "webOS Homebrew",
   "type": "native",
   "main": "wine-tv",
