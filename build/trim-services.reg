@@ -1,0 +1,16 @@
+REGEDIT4
+
+; Wine drivers and services a TV has no use for (build/make-prefix.sh, and
+; wine-tv once for older prefixes). Wine's device manager loads drivers for
+; the devices listed under Enum\ROOT\WINE whatever the service's Start value
+; says, so the device entries themselves go: Bluetooth (winebth, which failed
+; to start on every launch), USB passthrough (wineusb), and HID/game
+; controllers (winebus, built without its input backends here). One fewer
+; winedevice.exe. The event log's svchost.exe then starts only on demand.
+
+[-HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\ROOT\WINE\WINEBTH]
+[-HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\ROOT\WINE\WINEBUS]
+[-HKEY_LOCAL_MACHINE\System\CurrentControlSet\Enum\ROOT\WINE\WINEUSB]
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\Eventlog]
+"Start"=dword:00000003

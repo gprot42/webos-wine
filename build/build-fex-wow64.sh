@@ -8,9 +8,10 @@ export PATH=$W/llvm-mingw/bin:$PATH
 cd $W
 [ -d FEX ] || git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/FEX-Emu/FEX.git
 cd FEX && git log -1 --format='FEX %h %cd'
+python3 $W/build/patches/fex-wow64-lto.py .
 rm -rf build-wow64 && mkdir build-wow64 && cd build-wow64
 cmake -G Ninja .. -DCMAKE_TOOLCHAIN_FILE=../Data/CMake/toolchain_mingw.cmake -DMINGW_TRIPLE=aarch64-w64-mingw32 \
-  -DCMAKE_BUILD_TYPE=Release -DTUNE_CPU=cortex-a76 -DENABLE_LTO=OFF -DBUILD_TESTING=OFF -DBUILD_FEXCONFIG=OFF \
+  -DCMAKE_BUILD_TYPE=Release -DTUNE_CPU=cortex-a76 -DENABLE_LTO=ON -DBUILD_TESTING=OFF -DBUILD_FEXCONFIG=OFF \
   -DENABLE_JEMALLOC_GLIBC_ALLOC=OFF -DENABLE_CCACHE=OFF -DENABLE_OFFLINE_TELEMETRY=OFF > $W/fex-cmake.log 2>&1 \
   || { tail -30 $W/fex-cmake.log; exit 1; }
 ninja -j6 wow64fex > $W/fex-build.log 2>&1 || { grep -E "error" $W/fex-build.log | head -20; exit 1; }

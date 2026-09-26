@@ -56,6 +56,7 @@ print('l.Save')
 PY
 su prisoner -c "export WINEPREFIX=$T/wine64 HOME=/tmp/prisoner-home WINEDEBUG=-all; cd /tmp && \
   $APPDIR/wine/bin/wine wscript //B 'Z:$T/shortcuts.vbs' && \
+  $APPDIR/wine/bin/wine regedit /S 'Z:$OUT/tools/etc/trim-services.reg' && \
   $APPDIR/wine/bin/wine reg add 'HKCU\\Software\\Wine\\Explorer' /v Desktop /d shell /f && \
   $APPDIR/wine/bin/wine reg add 'HKCU\\Software\\Wine\\Explorer\\Desktops' /v shell /d 1920x1080 /f && \
   $APPDIR/wine/bin/wine reg add 'HKCU\\Control Panel\\Desktop' /v LogPixels /t REG_DWORD /d 144 /f && \
@@ -96,5 +97,8 @@ PY
 # every system DLL, which the copy-on-write preload would turn from symlinks
 # into full copies (it filled the TV once).
 echo disable > $T/wine64/.update-timestamp
+# build/trim-services.reg is already applied here; wine-tv applies it once
+# to prefixes from earlier versions, and this marker says it is done.
+touch $T/wine64/.wine-tv-trimmed
 rm -rf $OUT/prefix-template && mv $T/wine64 $OUT/prefix-template
 du -sh $OUT/prefix-template

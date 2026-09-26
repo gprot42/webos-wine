@@ -511,6 +511,24 @@ static void install_prefix(void)
             if (f)
                 fclose(f);
         }
+        /* Once: drop the drivers and services a TV cannot use from a prefix
+         * made before they were left out of the template
+         * (build/trim-services.reg). */
+        {
+            char marker[PATH_MAX], reg[PATH_MAX];
+
+            snprintf(marker, sizeof marker, "%s/.wine-tv-trimmed", prefix);
+            snprintf(reg, sizeof reg, "%s/tools/etc/trim-services.reg", g.dir);
+            if (access(marker, F_OK) != 0 && access(reg, R_OK) == 0) {
+                snprintf(cmd, sizeof cmd, "'%s/wine/bin/wine' regedit /S 'Z:%s' >/dev/null 2>&1", g.dir, reg);
+                if (system(cmd) == 0) {
+                    FILE *f = fopen(marker, "w");
+                    if (f)
+                        fclose(f);
+                    log_msg("unused Wine drivers and services disabled");
+                }
+            }
+        }
         /* Refresh the "Get Apps" shortcuts (desktop and Start menu) from
          * this version of the app: they are generated, never the user's. */
         static const char *const dirs[] = {
