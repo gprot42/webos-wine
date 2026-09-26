@@ -104,3 +104,7 @@ The package is about 170 MB, and about 850 MB installed. When the TV lacks room 
 - **OpenGL / Direct3D.** Xvfb has no GLX, so 3D programs and games do not run. The TV's Mali driver is softfp and 32-bit.
 - **64-bit x86 programs** need an ARM64EC build of Wine and FEX.
 - **Sound** goes to the TV's PulseAudio socket. It is untested.
+
+## License
+
+MIT, see [LICENSE](LICENSE). This covers this repository's own code. The two protocol descriptions in `src/protocol/` keep their own notices (Apache 2.0 and an MIT-style notice from Intel and LG). Wine, FEX, winetricks and the Debian runtime that the build downloads and packages are under their own licenses (Wine: LGPL 2.1+).
