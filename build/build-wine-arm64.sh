@@ -30,6 +30,7 @@ export PATH=$W/llvm-mingw/bin:$PATH
 cd $W
 [ -f wine-$V.tar.xz ] || curl -sfLO https://dl.winehq.org/wine/source/${V%%.*}.0/wine-$V.tar.xz
 rm -rf wine-$V-src && mkdir wine-$V-src && tar xf wine-$V.tar.xz -C wine-$V-src --strip-components=1
+python3 $W/build/patches/wine-arm64-4k-align.py wine-$V-src
 mkdir -p wine-arm64-build && cd wine-arm64-build && rm -rf ./*
 ../wine-$V-src/configure --prefix=/opt/wine --enable-archs=aarch64,i386 --disable-tests \
   --without-wayland --without-vulkan --without-opengl --without-oss --without-cups --without-sane \
