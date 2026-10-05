@@ -90,7 +90,11 @@ $SSH "grep -q '\"version\": *\"$VERSION\"' /media/developer/apps/usr/palm/applic
     || { echo "install did not reach version $VERSION" >&2; exit 1; }
 $SSH "rm -f $REMOTE"
 if [ "$SAVED_HOME" = 1 ]; then
-    $SSH "test -d /media/developer/wine-tv-home && mv /media/developer/wine-tv-home $APPDIR/home" && echo "home/ restored"
+    # Wine may have been started meanwhile (webOS relaunches a running app
+    # after an update) and made a fresh home/ from the template. Stop it and
+    # drop that fresh copy, or the saved home/ would be moved inside it.
+    $SSH "for p in \$(ps -ef | grep -E '[w]ine-tv [{]|[X]vfb :7|[a]arch64-unix/wine|[b]in/wineserver' | awk '{print \$2}'); do kill -9 \$p; done" || true
+    $SSH "test -d /media/developer/wine-tv-home && rm -rf $APPDIR/home && mv /media/developer/wine-tv-home $APPDIR/home" && echo "home/ restored"
 fi
 echo "installed $VERSION on $TV_IP"
 
