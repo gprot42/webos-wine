@@ -28,6 +28,7 @@ webOS launcher ──> wine-tv (armhf, owns the fullscreen window)
 - **Built for aarch64 and i386.** Wine is built with `--enable-archs=aarch64,i386`. It runs 32-bit x86 Windows programs only. 64-bit x86 programs would need an ARM64EC build of Wine plus FEX's ARM64EC module.
 - **The C: drive is built with the app.** `build/make-prefix.sh` boots the prefix in the build container as the TV jail's user (`prisoner`) and turns every system file identical to Wine's own into a symlink into `wine/`. The result, `prefix-template/`, is about 45 MB instead of about 750 MB. `wine-tv` copies it to `home/wine64` on first start.
 - **Copy-on-write.** `rt64/lib/libwine-tv-cow.so` is preloaded into every aarch64 program. When an installer overwrites one of those symlinks (d3dx9, vcrun...), it first becomes a private file in the prefix; Wine's own files are root-owned and never touched. Wine's automatic prefix update is disabled (`.update-timestamp` = `disable`); run with copy-on-write, it would copy every DLL.
+- **Sound.** Wine plays through the TV's PulseAudio socket (`/var/run/pulse/native`). LG's PulseAudio 15 expects one more field than upstream when a playback stream is created, and refuses variable-rate streams. `rt64/lib/libwine-tv-lgpulse.so`, preloaded like the copy-on-write library, adds the field and drops the flag (`src/lgpulse-preload.c`).
 - **Input.** The compositor sends a native app no Wayland pointer or key events on this TV. So the Magic Remote (pointer, OK, wheel, keys) is read from `/dev/input`, as in the Firefox port. Clicks aimed at the open webOS keyboard stay with the keyboard.
 - **Automatic on-screen keyboard.** Clicking while X shows the text I-beam cursor opens the webOS keyboard, which covers Qt programs such as VLC too. `wine-tv-kbd.exe` reports a focused native text field's caret, for fields reached with Tab. Clicking elsewhere closes it.
 - **Repainting.** Wine's X11 driver paints the desktop through the windows above it. So `wine-tv-kbd.exe` repaints the desktop and then every window whenever windows or desktop icons change. `wine-tv` also sends the TV one more frame after changes stop, because the compositor reads the shared buffer asynchronously.
@@ -107,7 +108,6 @@ The package is about 170 MB, and about 850 MB installed. When the TV lacks room 
 
 - **OpenGL / Direct3D.** Xvfb has no GLX, so 3D programs and games do not run. The TV's Mali driver is softfp and 32-bit.
 - **64-bit x86 programs** need an ARM64EC build of Wine and FEX.
-- **Sound** goes to the TV's PulseAudio socket. It is untested.
 
 ## License
 
