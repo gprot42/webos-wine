@@ -14,12 +14,21 @@
  * So whenever the set of visible windows or the desktop's icons change, once
  * that has settled, the desktop is repainted first and then every window.
  *
+ * It registers as a Wine system process, like services.exe: otherwise,
+ * having no window to receive the end-session messages, it kept the desktop
+ * alive and "Exit desktop" did nothing. Wine signals the event it gets back
+ * when the last ordinary program has gone, and it exits then.
+ *
  * Built for aarch64 Windows (llvm-mingw), so it runs natively in Wine;
  * wine-tv starts it with the desktop, and it has no window.
  */
 
 #include <windows.h>
 #include <shlobj.h>
+
+/* Wine-specific: NtSetInformationProcess class ProcessWineMakeProcessSystem. */
+#define ProcessWineMakeProcessSystem 1000
+LONG WINAPI NtSetInformationProcess(HANDLE process, ULONG info_class, void *info, ULONG size);
 
 static const wchar_t state_file[] = L"Z:\\tmp\\wine-tv\\kbd";
 
@@ -126,7 +135,9 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, LPWSTR cmdline, int show)
     HANDLE single;
     static struct window_set last, now;
     int settle = 0;             /* polls left before redrawing */
-    HANDLE watch[2];
+    HANDLE waits[3];             /* end of session, then desktop folder watches */
+    HANDLE *watch = waits + 1;
+    HANDLE session_end = NULL;
     int nwatch;
 
     (void)inst;
@@ -137,6 +148,9 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, LPWSTR cmdline, int show)
     single = CreateMutexW(NULL, TRUE, L"wine-tv-kbd");
     if (single && GetLastError() == ERROR_ALREADY_EXISTS)
         return 0;
+    NtSetInformationProcess(GetCurrentProcess(), ProcessWineMakeProcessSystem,
+                            &session_end, sizeof(HANDLE *));
+    waits[0] = session_end;
     nwatch = watch_desktops(watch);
     for (;;) {
         int want = wants_keyboard();
@@ -155,10 +169,16 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, LPWSTR cmdline, int show)
         } else if (settle && --settle == 0) {
             repaint_all();
         }
-        /* Wait 300 ms, or less if a desktop icon was added or removed. */
-        w = nwatch ? WaitForMultipleObjects(nwatch, watch, FALSE, 300) : (Sleep(300), WAIT_TIMEOUT);
-        if (w < WAIT_OBJECT_0 + (DWORD)nwatch) {
-            FindNextChangeNotification(watch[w - WAIT_OBJECT_0]);
+        /* Wait 300 ms, or less if a desktop icon was added or removed or
+         * the session ended. */
+        if (session_end)
+            w = WaitForMultipleObjects(1 + nwatch, waits, FALSE, 300);
+        else
+            w = nwatch ? WaitForMultipleObjects(nwatch, watch, FALSE, 300) + 1 : (Sleep(300), WAIT_TIMEOUT);
+        if (session_end && w == WAIT_OBJECT_0)
+            return 0;
+        if (w > WAIT_OBJECT_0 && w <= WAIT_OBJECT_0 + (DWORD)nwatch) {
+            FindNextChangeNotification(watch[w - WAIT_OBJECT_0 - 1]);
             settle = 2;
         }
     }

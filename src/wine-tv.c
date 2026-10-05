@@ -458,10 +458,14 @@ static void start_wine(const char *exe)
     int n = 0;
 
     snprintf(wine, sizeof wine, "%s/wine/bin/wine", g.dir);
-    /* A desktop named "shell" gets Wine's taskbar and Start menu. */
+    /* A desktop named "shell" gets Wine's taskbar and Start menu.
+     * Explorer is named by its full path: given a bare name, Wine runs it
+     * through start.exe, which waits for it on the same desktop (the prefix's
+     * default is "shell"). Wine closes a desktop only once its own process
+     * is all that is left on it, so "Exit desktop" never finished. */
     snprintf(desktop, sizeof desktop, "/desktop=shell,%dx%d", g.width, g.height);
     argv[n++] = wine;
-    argv[n++] = "explorer";
+    argv[n++] = "C:\\windows\\system32\\explorer.exe";
     argv[n++] = desktop;
     if (exe && exe[0])
         argv[n++] = (char *)exe;

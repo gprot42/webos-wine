@@ -57,7 +57,7 @@ cp $W/src/wine-tv-install $OUT/tools/bin/
 cp $W/build/catalog.tsv $OUT/tools/etc/
 cp $W/build/trim-services.reg $OUT/tools/etc/
 # Reports text-field focus to wine-tv (src/wine-tv-kbd.c): aarch64 Windows.
-aarch64-w64-mingw32-clang -municode -mwindows -O2 -Wall -o $OUT/tools/wine-tv-kbd.exe $W/src/wine-tv-kbd.c -lshell32
+aarch64-w64-mingw32-clang -municode -mwindows -O2 -Wall -o $OUT/tools/wine-tv-kbd.exe $W/src/wine-tv-kbd.c -lshell32 -lntdll
 rm -rf $OUT/tools/verbs && cp -r $W/build/verbs $OUT/tools/verbs
 sed -i "1s|.*|#!$APPDIR/tools/bin/bash|" $OUT/tools/bin/wine-tv-install
 chmod 755 $OUT/tools/bin/*
