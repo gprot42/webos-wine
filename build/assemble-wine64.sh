@@ -82,6 +82,8 @@ python3 $W/build/patches/ldso-no-preload.py --preload /tmp/wine-tv/prelo $OUT/rt
 # Copy-on-write for the prefix's symlinked system files (src/cow-preload.c),
 # preloaded into every aarch64 program through /tmp/wine-tv/prelo.
 gcc -shared -fPIC -O2 -Wall -o $OUT/rt64/lib/libwine-tv-cow.so $W/src/cow-preload.c -ldl
+# PulseAudio playback against LG's modified server (src/lgpulse-preload.c).
+gcc -shared -fPIC -O2 -Wall -o $OUT/rt64/lib/libwine-tv-lgpulse.so $W/src/lgpulse-preload.c -ldl
 # Debian libraries carry their own search paths (libpulse: .../pulseaudio);
 # a RUNPATH hides the app's RPATH from their dependencies. Everything is in
 # rt64/lib, so drop them.

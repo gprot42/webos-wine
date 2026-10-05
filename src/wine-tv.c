@@ -319,8 +319,9 @@ static void setup_env(void)
     /* The TV's PulseAudio, which the app jail shares. */
     if (access("/var/run/pulse/native", F_OK) == 0)
         setenv("PULSE_SERVER", "unix:/var/run/pulse/native", 0);
-    /* Copy-on-write for the prefix's symlinked system files: the app's
-     * aarch64 loader preloads what this file names (src/cow-preload.c). */
+    /* The app's aarch64 loader preloads what this file names: copy-on-write
+     * for the prefix's symlinked system files (src/cow-preload.c), and the
+     * fix for LG's PulseAudio (src/lgpulse-preload.c). */
     {
         FILE *f;
 
@@ -328,6 +329,9 @@ static void setup_env(void)
         f = fopen(FB_DIR "/prelo", "w");
         if (f) {
             fprintf(f, "%s/rt64/lib/libwine-tv-cow.so\n", g.dir);
+            /* Lets PulseAudio playback work with LG's server
+             * (src/lgpulse-preload.c). */
+            fprintf(f, "%s/rt64/lib/libwine-tv-lgpulse.so\n", g.dir);
             fclose(f);
         }
     }
